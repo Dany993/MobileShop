@@ -5,14 +5,14 @@ import { theme } from "./theme/theme";
 import Login from "./Login";
 import "./App.scss";
 import Dashboard from "./pages/Dashboard";
-import { CategoryList } from "./category/CategoryList";
-import { CategoryCreate } from "./category/CategoryCreate";
-import { CategoryEdit } from "./category/CategoryEdit";
-import { CategoryShow } from "./category/CategoryShow";
 import { ProductList } from "./product/ProductList";
 import { ProductCreate } from "./product/ProductCreate";
 import { ProductEdit } from "./product/ProductEdit";
 import { ProductShow } from "./product/ProductShow";
+import { CategoryList } from "./category/CategoryList";
+import { CategoryCreate } from "./category/CategoryCreate";
+import { CategoryEdit } from "./category/CategoryEdit";
+import { CategoryShow } from "./category/CategoryShow";
 import { BrandList } from "./brand/BrandList";
 import { BrandCreate } from "./brand/BrandCreate";
 import { BrandEdit } from "./brand/BrandEdit";
@@ -52,18 +52,18 @@ const App = (): React.ReactElement => {
         loginPage={Login}
       >
         <Resource
-          name="Category"
-          list={CategoryList}
-          edit={CategoryEdit}
-          create={CategoryCreate}
-          show={CategoryShow}
-        />
-        <Resource
           name="Product"
           list={ProductList}
           edit={ProductEdit}
           create={ProductCreate}
           show={ProductShow}
+        />
+        <Resource
+          name="Category"
+          list={CategoryList}
+          edit={CategoryEdit}
+          create={CategoryCreate}
+          show={CategoryShow}
         />
         <Resource
           name="Brand"

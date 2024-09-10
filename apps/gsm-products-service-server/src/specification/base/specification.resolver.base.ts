@@ -13,16 +13,36 @@ import * as graphql from "@nestjs/graphql";
 import { GraphQLError } from "graphql";
 import { isRecordNotFoundError } from "../../prisma.util";
 import { MetaQueryPayload } from "../../util/MetaQueryPayload";
+import * as nestAccessControl from "nest-access-control";
+import * as gqlACGuard from "../../auth/gqlAC.guard";
+import { GqlDefaultAuthGuard } from "../../auth/gqlDefaultAuth.guard";
+import * as common from "@nestjs/common";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
 import { Specification } from "./Specification";
 import { SpecificationCountArgs } from "./SpecificationCountArgs";
 import { SpecificationFindManyArgs } from "./SpecificationFindManyArgs";
 import { SpecificationFindUniqueArgs } from "./SpecificationFindUniqueArgs";
+import { CreateSpecificationArgs } from "./CreateSpecificationArgs";
+import { UpdateSpecificationArgs } from "./UpdateSpecificationArgs";
 import { DeleteSpecificationArgs } from "./DeleteSpecificationArgs";
+import { ProductFindManyArgs } from "../../product/base/ProductFindManyArgs";
+import { Product } from "../../product/base/Product";
 import { SpecificationService } from "../specification.service";
+@common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => Specification)
 export class SpecificationResolverBase {
-  constructor(protected readonly service: SpecificationService) {}
+  constructor(
+    protected readonly service: SpecificationService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
 
+  @graphql.Query(() => MetaQueryPayload)
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "read",
+    possession: "any",
+  })
   async _specificationsMeta(
     @graphql.Args() args: SpecificationCountArgs
   ): Promise<MetaQueryPayload> {
@@ -32,14 +52,26 @@ export class SpecificationResolverBase {
     };
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => [Specification])
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "read",
+    possession: "any",
+  })
   async specifications(
     @graphql.Args() args: SpecificationFindManyArgs
   ): Promise<Specification[]> {
     return this.service.specifications(args);
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @graphql.Query(() => Specification, { nullable: true })
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "read",
+    possession: "own",
+  })
   async specification(
     @graphql.Args() args: SpecificationFindUniqueArgs
   ): Promise<Specification | null> {
@@ -50,7 +82,53 @@ export class SpecificationResolverBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @graphql.Mutation(() => Specification)
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "create",
+    possession: "any",
+  })
+  async createSpecification(
+    @graphql.Args() args: CreateSpecificationArgs
+  ): Promise<Specification> {
+    return await this.service.createSpecification({
+      ...args,
+      data: args.data,
+    });
+  }
+
+  @common.UseInterceptors(AclValidateRequestInterceptor)
+  @graphql.Mutation(() => Specification)
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "update",
+    possession: "any",
+  })
+  async updateSpecification(
+    @graphql.Args() args: UpdateSpecificationArgs
+  ): Promise<Specification | null> {
+    try {
+      return await this.service.updateSpecification({
+        ...args,
+        data: args.data,
+      });
+    } catch (error) {
+      if (isRecordNotFoundError(error)) {
+        throw new GraphQLError(
+          `No resource was found for ${JSON.stringify(args.where)}`
+        );
+      }
+      throw error;
+    }
+  }
+
+  @graphql.Mutation(() => Specification)
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "delete",
+    possession: "any",
+  })
   async deleteSpecification(
     @graphql.Args() args: DeleteSpecificationArgs
   ): Promise<Specification | null> {
@@ -64,5 +142,25 @@ export class SpecificationResolverBase {
       }
       throw error;
     }
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @graphql.ResolveField(() => [Product], { name: "products" })
+  @nestAccessControl.UseRoles({
+    resource: "Product",
+    action: "read",
+    possession: "any",
+  })
+  async findProducts(
+    @graphql.Parent() parent: Specification,
+    @graphql.Args() args: ProductFindManyArgs
+  ): Promise<Product[]> {
+    const results = await this.service.findProducts(parent.id, args);
+
+    if (!results) {
+      return [];
+    }
+
+    return results;
   }
 }

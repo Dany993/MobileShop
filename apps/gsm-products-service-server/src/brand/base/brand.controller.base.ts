@@ -16,31 +16,62 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { BrandService } from "../brand.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { BrandCreateInput } from "./BrandCreateInput";
 import { Brand } from "./Brand";
 import { BrandFindManyArgs } from "./BrandFindManyArgs";
 import { BrandWhereUniqueInput } from "./BrandWhereUniqueInput";
 import { BrandUpdateInput } from "./BrandUpdateInput";
+import { ProductFindManyArgs } from "../../product/base/ProductFindManyArgs";
+import { Product } from "../../product/base/Product";
+import { ProductWhereUniqueInput } from "../../product/base/ProductWhereUniqueInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class BrandControllerBase {
-  constructor(protected readonly service: BrandService) {}
+  constructor(
+    protected readonly service: BrandService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Brand })
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createBrand(@common.Body() data: BrandCreateInput): Promise<Brand> {
     return await this.service.createBrand({
       data: data,
       select: {
         createdAt: true,
         id: true,
+        name: true,
         updatedAt: true,
       },
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Brand] })
   @ApiNestedQuery(BrandFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async brands(@common.Req() request: Request): Promise<Brand[]> {
     const args = plainToClass(BrandFindManyArgs, request.query);
     return this.service.brands({
@@ -48,14 +79,24 @@ export class BrandControllerBase {
       select: {
         createdAt: true,
         id: true,
+        name: true,
         updatedAt: true,
       },
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Brand })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async brand(
     @common.Param() params: BrandWhereUniqueInput
   ): Promise<Brand | null> {
@@ -64,6 +105,7 @@ export class BrandControllerBase {
       select: {
         createdAt: true,
         id: true,
+        name: true,
         updatedAt: true,
       },
     });
@@ -75,9 +117,18 @@ export class BrandControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Brand })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateBrand(
     @common.Param() params: BrandWhereUniqueInput,
     @common.Body() data: BrandUpdateInput
@@ -89,6 +140,7 @@ export class BrandControllerBase {
         select: {
           createdAt: true,
           id: true,
+          name: true,
           updatedAt: true,
         },
       });
@@ -105,6 +157,14 @@ export class BrandControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Brand })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteBrand(
     @common.Param() params: BrandWhereUniqueInput
   ): Promise<Brand | null> {
@@ -114,6 +174,7 @@ export class BrandControllerBase {
         select: {
           createdAt: true,
           id: true,
+          name: true,
           updatedAt: true,
         },
       });
@@ -125,5 +186,122 @@ export class BrandControllerBase {
       }
       throw error;
     }
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @common.Get("/:id/products")
+  @ApiNestedQuery(ProductFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Product",
+    action: "read",
+    possession: "any",
+  })
+  async findProducts(
+    @common.Req() request: Request,
+    @common.Param() params: BrandWhereUniqueInput
+  ): Promise<Product[]> {
+    const query = plainToClass(ProductFindManyArgs, request.query);
+    const results = await this.service.findProducts(params.id, {
+      ...query,
+      select: {
+        brand: {
+          select: {
+            id: true,
+          },
+        },
+
+        category: {
+          select: {
+            id: true,
+          },
+        },
+
+        createdAt: true,
+        description: true,
+        id: true,
+        name: true,
+        price: true,
+
+        specification: {
+          select: {
+            id: true,
+          },
+        },
+
+        updatedAt: true,
+      },
+    });
+    if (results === null) {
+      throw new errors.NotFoundException(
+        `No resource was found for ${JSON.stringify(params)}`
+      );
+    }
+    return results;
+  }
+
+  @common.Post("/:id/products")
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "update",
+    possession: "any",
+  })
+  async connectProducts(
+    @common.Param() params: BrandWhereUniqueInput,
+    @common.Body() body: ProductWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      products: {
+        connect: body,
+      },
+    };
+    await this.service.updateBrand({
+      where: params,
+      data,
+      select: { id: true },
+    });
+  }
+
+  @common.Patch("/:id/products")
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "update",
+    possession: "any",
+  })
+  async updateProducts(
+    @common.Param() params: BrandWhereUniqueInput,
+    @common.Body() body: ProductWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      products: {
+        set: body,
+      },
+    };
+    await this.service.updateBrand({
+      where: params,
+      data,
+      select: { id: true },
+    });
+  }
+
+  @common.Delete("/:id/products")
+  @nestAccessControl.UseRoles({
+    resource: "Brand",
+    action: "update",
+    possession: "any",
+  })
+  async disconnectProducts(
+    @common.Param() params: BrandWhereUniqueInput,
+    @common.Body() body: ProductWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      products: {
+        disconnect: body,
+      },
+    };
+    await this.service.updateBrand({
+      where: params,
+      data,
+      select: { id: true },
+    });
   }
 }

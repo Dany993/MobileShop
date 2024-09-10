@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
-import { CategoryModule } from "./category/category.module";
 import { ProductModule } from "./product/product.module";
+import { CategoryModule } from "./category/category.module";
 import { BrandModule } from "./brand/brand.module";
 import { SpecificationModule } from "./specification/specification.module";
 import { UserModule } from "./user/user.module";
@@ -13,11 +13,16 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { GraphQLModule } from "@nestjs/graphql";
 import { ApolloDriver, ApolloDriverConfig } from "@nestjs/apollo";
 
+import { ACLModule } from "./auth/acl.module";
+import { AuthModule } from "./auth/auth.module";
+
 @Module({
   controllers: [],
   imports: [
-    CategoryModule,
+    ACLModule,
+    AuthModule,
     ProductModule,
+    CategoryModule,
     BrandModule,
     SpecificationModule,
     UserModule,

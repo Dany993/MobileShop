@@ -10,7 +10,17 @@ https://docs.amplication.com/how-to/custom-code
 ------------------------------------------------------------------------------
   */
 import { PrismaService } from "../../prisma/prisma.service";
-import { Prisma, Product as PrismaProduct } from "@prisma/client";
+
+import {
+  Prisma,
+  Product as PrismaProduct,
+  Brand as PrismaBrand,
+  Category as PrismaCategory,
+  Specification as PrismaSpecification,
+} from "@prisma/client";
+
+import { ProductCreateInput } from "./ProductCreateInput";
+import { ProductWhereUniqueInput } from "./ProductWhereUniqueInput";
 
 export class ProductServiceBase {
   constructor(protected readonly prisma: PrismaService) {}
@@ -35,5 +45,36 @@ export class ProductServiceBase {
   }
   async deleteProduct(args: Prisma.ProductDeleteArgs): Promise<PrismaProduct> {
     return this.prisma.product.delete(args);
+  }
+
+  async getBrand(parentId: string): Promise<PrismaBrand | null> {
+    return this.prisma.product
+      .findUnique({
+        where: { id: parentId },
+      })
+      .brand();
+  }
+
+  async getCategory(parentId: string): Promise<PrismaCategory | null> {
+    return this.prisma.product
+      .findUnique({
+        where: { id: parentId },
+      })
+      .category();
+  }
+
+  async getSpecification(
+    parentId: string
+  ): Promise<PrismaSpecification | null> {
+    return this.prisma.product
+      .findUnique({
+        where: { id: parentId },
+      })
+      .specification();
+  }
+  async CreateProduct(
+    args: ProductCreateInput
+  ): Promise<ProductWhereUniqueInput> {
+    throw new Error("Not implemented");
   }
 }
