@@ -9,5 +9,42 @@ https://docs.amplication.com/how-to/custom-code
 
 ------------------------------------------------------------------------------
   */
-class SpecificationUpdateInput {}
+import { InputType, Field } from "@nestjs/graphql";
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsString,
+  MaxLength,
+  IsOptional,
+  ValidateNested,
+} from "class-validator";
+import { ProductUpdateManyWithoutSpecificationsInput } from "./ProductUpdateManyWithoutSpecificationsInput";
+import { Type } from "class-transformer";
+
+@InputType()
+class SpecificationUpdateInput {
+  @ApiProperty({
+    required: false,
+    type: String,
+  })
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  @Field(() => String, {
+    nullable: true,
+  })
+  details?: string | null;
+
+  @ApiProperty({
+    required: false,
+    type: () => ProductUpdateManyWithoutSpecificationsInput,
+  })
+  @ValidateNested()
+  @Type(() => ProductUpdateManyWithoutSpecificationsInput)
+  @IsOptional()
+  @Field(() => ProductUpdateManyWithoutSpecificationsInput, {
+    nullable: true,
+  })
+  products?: ProductUpdateManyWithoutSpecificationsInput;
+}
+
 export { SpecificationUpdateInput as SpecificationUpdateInput };

@@ -7,28 +7,43 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Category {
-  createdAt DateTime @default(now())
-  id        String   @id @default(cuid())
-  updatedAt DateTime @updatedAt
+model Product {
+  brand           Brand?         @relation(fields: [brandId], references: [id])
+  brandId         String?
+  category        Category?      @relation(fields: [categoryId], references: [id])
+  categoryId      String?
+  createdAt       DateTime       @default(now())
+  description     String?
+  id              String         @id @default(cuid())
+  name            String?
+  price           Float?
+  specification   Specification? @relation(fields: [specificationId], references: [id])
+  specificationId String?
+  updatedAt       DateTime       @updatedAt
 }
 
-model Product {
-  createdAt DateTime @default(now())
-  id        String   @id @default(cuid())
-  updatedAt DateTime @updatedAt
+model Category {
+  createdAt DateTime  @default(now())
+  id        String    @id @default(cuid())
+  name      String?
+  products  Product[]
+  updatedAt DateTime  @updatedAt
 }
 
 model Brand {
-  createdAt DateTime @default(now())
-  id        String   @id @default(cuid())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  id        String    @id @default(cuid())
+  name      String?
+  products  Product[]
+  updatedAt DateTime  @updatedAt
 }
 
 model Specification {
-  createdAt DateTime @default(now())
-  id        String   @id @default(cuid())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  details   String?
+  id        String    @id @default(cuid())
+  products  Product[]
+  updatedAt DateTime  @updatedAt
 }
 
 model User {

@@ -16,17 +16,38 @@ import * as errors from "../../errors";
 import { Request } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
+import * as nestAccessControl from "nest-access-control";
+import * as defaultAuthGuard from "../../auth/defaultAuth.guard";
 import { SpecificationService } from "../specification.service";
+import { AclValidateRequestInterceptor } from "../../interceptors/aclValidateRequest.interceptor";
+import { AclFilterResponseInterceptor } from "../../interceptors/aclFilterResponse.interceptor";
 import { SpecificationCreateInput } from "./SpecificationCreateInput";
 import { Specification } from "./Specification";
 import { SpecificationFindManyArgs } from "./SpecificationFindManyArgs";
 import { SpecificationWhereUniqueInput } from "./SpecificationWhereUniqueInput";
 import { SpecificationUpdateInput } from "./SpecificationUpdateInput";
+import { ProductFindManyArgs } from "../../product/base/ProductFindManyArgs";
+import { Product } from "../../product/base/Product";
+import { ProductWhereUniqueInput } from "../../product/base/ProductWhereUniqueInput";
 
+@swagger.ApiBearerAuth()
+@common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
 export class SpecificationControllerBase {
-  constructor(protected readonly service: SpecificationService) {}
+  constructor(
+    protected readonly service: SpecificationService,
+    protected readonly rolesBuilder: nestAccessControl.RolesBuilder
+  ) {}
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Post()
   @swagger.ApiCreatedResponse({ type: Specification })
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "create",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async createSpecification(
     @common.Body() data: SpecificationCreateInput
   ): Promise<Specification> {
@@ -34,15 +55,25 @@ export class SpecificationControllerBase {
       data: data,
       select: {
         createdAt: true,
+        details: true,
         id: true,
         updatedAt: true,
       },
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get()
   @swagger.ApiOkResponse({ type: [Specification] })
   @ApiNestedQuery(SpecificationFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "read",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async specifications(
     @common.Req() request: Request
   ): Promise<Specification[]> {
@@ -51,15 +82,25 @@ export class SpecificationControllerBase {
       ...args,
       select: {
         createdAt: true,
+        details: true,
         id: true,
         updatedAt: true,
       },
     });
   }
 
+  @common.UseInterceptors(AclFilterResponseInterceptor)
   @common.Get("/:id")
   @swagger.ApiOkResponse({ type: Specification })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async specification(
     @common.Param() params: SpecificationWhereUniqueInput
   ): Promise<Specification | null> {
@@ -67,6 +108,7 @@ export class SpecificationControllerBase {
       where: params,
       select: {
         createdAt: true,
+        details: true,
         id: true,
         updatedAt: true,
       },
@@ -79,9 +121,18 @@ export class SpecificationControllerBase {
     return result;
   }
 
+  @common.UseInterceptors(AclValidateRequestInterceptor)
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: Specification })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "update",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async updateSpecification(
     @common.Param() params: SpecificationWhereUniqueInput,
     @common.Body() data: SpecificationUpdateInput
@@ -92,6 +143,7 @@ export class SpecificationControllerBase {
         data: data,
         select: {
           createdAt: true,
+          details: true,
           id: true,
           updatedAt: true,
         },
@@ -109,6 +161,14 @@ export class SpecificationControllerBase {
   @common.Delete("/:id")
   @swagger.ApiOkResponse({ type: Specification })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "delete",
+    possession: "any",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
   async deleteSpecification(
     @common.Param() params: SpecificationWhereUniqueInput
   ): Promise<Specification | null> {
@@ -117,6 +177,7 @@ export class SpecificationControllerBase {
         where: params,
         select: {
           createdAt: true,
+          details: true,
           id: true,
           updatedAt: true,
         },
@@ -129,5 +190,122 @@ export class SpecificationControllerBase {
       }
       throw error;
     }
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @common.Get("/:id/products")
+  @ApiNestedQuery(ProductFindManyArgs)
+  @nestAccessControl.UseRoles({
+    resource: "Product",
+    action: "read",
+    possession: "any",
+  })
+  async findProducts(
+    @common.Req() request: Request,
+    @common.Param() params: SpecificationWhereUniqueInput
+  ): Promise<Product[]> {
+    const query = plainToClass(ProductFindManyArgs, request.query);
+    const results = await this.service.findProducts(params.id, {
+      ...query,
+      select: {
+        brand: {
+          select: {
+            id: true,
+          },
+        },
+
+        category: {
+          select: {
+            id: true,
+          },
+        },
+
+        createdAt: true,
+        description: true,
+        id: true,
+        name: true,
+        price: true,
+
+        specification: {
+          select: {
+            id: true,
+          },
+        },
+
+        updatedAt: true,
+      },
+    });
+    if (results === null) {
+      throw new errors.NotFoundException(
+        `No resource was found for ${JSON.stringify(params)}`
+      );
+    }
+    return results;
+  }
+
+  @common.Post("/:id/products")
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "update",
+    possession: "any",
+  })
+  async connectProducts(
+    @common.Param() params: SpecificationWhereUniqueInput,
+    @common.Body() body: ProductWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      products: {
+        connect: body,
+      },
+    };
+    await this.service.updateSpecification({
+      where: params,
+      data,
+      select: { id: true },
+    });
+  }
+
+  @common.Patch("/:id/products")
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "update",
+    possession: "any",
+  })
+  async updateProducts(
+    @common.Param() params: SpecificationWhereUniqueInput,
+    @common.Body() body: ProductWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      products: {
+        set: body,
+      },
+    };
+    await this.service.updateSpecification({
+      where: params,
+      data,
+      select: { id: true },
+    });
+  }
+
+  @common.Delete("/:id/products")
+  @nestAccessControl.UseRoles({
+    resource: "Specification",
+    action: "update",
+    possession: "any",
+  })
+  async disconnectProducts(
+    @common.Param() params: SpecificationWhereUniqueInput,
+    @common.Body() body: ProductWhereUniqueInput[]
+  ): Promise<void> {
+    const data = {
+      products: {
+        disconnect: body,
+      },
+    };
+    await this.service.updateSpecification({
+      where: params,
+      data,
+      select: { id: true },
+    });
   }
 }

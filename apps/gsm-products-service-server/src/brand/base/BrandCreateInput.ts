@@ -9,5 +9,42 @@ https://docs.amplication.com/how-to/custom-code
 
 ------------------------------------------------------------------------------
   */
-class BrandCreateInput {}
+import { InputType, Field } from "@nestjs/graphql";
+import { ApiProperty } from "@nestjs/swagger";
+import {
+  IsString,
+  MaxLength,
+  IsOptional,
+  ValidateNested,
+} from "class-validator";
+import { ProductCreateNestedManyWithoutBrandsInput } from "./ProductCreateNestedManyWithoutBrandsInput";
+import { Type } from "class-transformer";
+
+@InputType()
+class BrandCreateInput {
+  @ApiProperty({
+    required: false,
+    type: String,
+  })
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  @Field(() => String, {
+    nullable: true,
+  })
+  name?: string | null;
+
+  @ApiProperty({
+    required: false,
+    type: () => ProductCreateNestedManyWithoutBrandsInput,
+  })
+  @ValidateNested()
+  @Type(() => ProductCreateNestedManyWithoutBrandsInput)
+  @IsOptional()
+  @Field(() => ProductCreateNestedManyWithoutBrandsInput, {
+    nullable: true,
+  })
+  products?: ProductCreateNestedManyWithoutBrandsInput;
+}
+
 export { BrandCreateInput as BrandCreateInput };

@@ -9,5 +9,96 @@ https://docs.amplication.com/how-to/custom-code
 
 ------------------------------------------------------------------------------
   */
-class ProductCreateInput {}
+import { InputType, Field } from "@nestjs/graphql";
+import { ApiProperty } from "@nestjs/swagger";
+import { BrandWhereUniqueInput } from "../../brand/base/BrandWhereUniqueInput";
+import {
+  ValidateNested,
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsNumber,
+  Min,
+  Max,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { CategoryWhereUniqueInput } from "../../category/base/CategoryWhereUniqueInput";
+import { SpecificationWhereUniqueInput } from "../../specification/base/SpecificationWhereUniqueInput";
+
+@InputType()
+class ProductCreateInput {
+  @ApiProperty({
+    required: false,
+    type: () => BrandWhereUniqueInput,
+  })
+  @ValidateNested()
+  @Type(() => BrandWhereUniqueInput)
+  @IsOptional()
+  @Field(() => BrandWhereUniqueInput, {
+    nullable: true,
+  })
+  brand?: BrandWhereUniqueInput | null;
+
+  @ApiProperty({
+    required: false,
+    type: () => CategoryWhereUniqueInput,
+  })
+  @ValidateNested()
+  @Type(() => CategoryWhereUniqueInput)
+  @IsOptional()
+  @Field(() => CategoryWhereUniqueInput, {
+    nullable: true,
+  })
+  category?: CategoryWhereUniqueInput | null;
+
+  @ApiProperty({
+    required: false,
+    type: String,
+  })
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  @Field(() => String, {
+    nullable: true,
+  })
+  description?: string | null;
+
+  @ApiProperty({
+    required: false,
+    type: String,
+  })
+  @IsString()
+  @MaxLength(1000)
+  @IsOptional()
+  @Field(() => String, {
+    nullable: true,
+  })
+  name?: string | null;
+
+  @ApiProperty({
+    required: false,
+    type: Number,
+  })
+  @IsNumber()
+  @Min(-999999999)
+  @Max(999999999)
+  @IsOptional()
+  @Field(() => Number, {
+    nullable: true,
+  })
+  price?: number | null;
+
+  @ApiProperty({
+    required: false,
+    type: () => SpecificationWhereUniqueInput,
+  })
+  @ValidateNested()
+  @Type(() => SpecificationWhereUniqueInput)
+  @IsOptional()
+  @Field(() => SpecificationWhereUniqueInput, {
+    nullable: true,
+  })
+  specification?: SpecificationWhereUniqueInput | null;
+}
+
 export { ProductCreateInput as ProductCreateInput };
